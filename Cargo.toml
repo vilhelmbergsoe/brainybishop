@@ -2,7 +2,9 @@
 name = "brainybishop"
 version = "0.1.0"
 edition = "2021"
+include = ["src/**/*", "LICENSE", "README.md"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+color-eyre = "0.6.2"
