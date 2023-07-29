@@ -1,70 +1,19 @@
-use board::Board;
-use board::Square;
-mod board;
+use color_eyre::eyre::Result;
 
-fn main() {
-    let mut board = Board::default();
+use brainybishop::board::{Board, BoardState, Color, Piece, PieceType, Square};
 
+fn main() -> Result<()> {
+    color_eyre::install()?;
 
-    let board =
-        Board::from_fen("rnbqkbnr/p1p1p1p1/8/1p1p1p1p/P1P1P1P1/8/1P1P1P1P/RNBQKBNR w KQkq - 0 1")
-            .unwrap();
+    let mut _boardstate = BoardState::default();
 
-    let before = std::time::Instant::now();
-    for i in 0..1000000000 {
-        board.get_piece_at(&Square::from_algebraic("e4").unwrap());
-    }
-    println!("100 fen parses took: {:?}", before.elapsed());
+    let mut boardstate =
+    BoardState::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
-    print!("{}", board);
+    boardstate.board.remove_piece(&Square::from_algebraic("d2").unwrap());
+    boardstate.board.set_piece(Square::from_algebraic("d4").unwrap(), Piece(PieceType::Pawn, Color::White));
 
-    println!(
-        "legal moves for e3: {:?}",
-        board
-            .get_legal_moves(Square::from_algebraic("e4").unwrap())
-            .unwrap()
-            .iter()
-            .map(|x| x.to_algebraic())
-            .collect::<Vec<String>>()
-    );
+    print!("{}", boardstate.board);
 
-    println!(
-        "legal moves for a4: {:?}",
-        board
-            .get_legal_moves(Square::from_algebraic("a4").unwrap())
-            .unwrap()
-            .iter()
-            .map(|x| x.to_algebraic())
-            .collect::<Vec<String>>()
-    );
-
-    println!(
-        "legal moves for b5: {:?}",
-        board
-            .get_legal_moves(Square::from_algebraic("b5").unwrap())
-            .unwrap()
-            .iter()
-            .map(|x| x.to_algebraic())
-            .collect::<Vec<String>>()
-    );
-
-    println!(
-        "legal moves for h5: {:?}",
-        board
-            .get_legal_moves(Square::from_algebraic("h5").unwrap())
-            .unwrap()
-            .iter()
-            .map(|x| x.to_algebraic())
-            .collect::<Vec<String>>()
-    );
-
-    // println!(
-    //     "legal moves for e1: {:?}",
-    //     board
-    //         .get_legal_moves(Square::from_algebraic("e1").unwrap())
-    //         .unwrap()
-    //         .iter()
-    //         .map(|x| x.to_algebraic())
-    //         .collect::<Vec<String>>()
-    // );
+    Ok(())
 }
