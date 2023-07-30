@@ -1,4 +1,4 @@
-use brainybishop::board::bitboard::Bitboard;
+use brainybishop::bitboard::Bitboard;
 use brainybishop::board::{Board, BoardState, CastlingRights, Color};
 
 #[cfg(test)]

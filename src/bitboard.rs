@@ -1,4 +1,4 @@
-use super::{Board, Color, Piece, PieceType, Square};
+use super::board::{Board, Color, Piece, PieceType, Square};
 
 use std::fmt;
 

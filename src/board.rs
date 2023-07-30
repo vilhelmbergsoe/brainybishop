@@ -1,7 +1,6 @@
 use color_eyre::eyre::{eyre, Result};
 
-pub mod bitboard;
-use bitboard::Bitboard;
+use super::bitboard::Bitboard;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PieceType {
@@ -43,7 +42,7 @@ impl Piece {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Square(u64);
+pub struct Square(pub u64);
 
 impl Square {
     pub fn from(file: u8, rank: u8) -> Result<Self> {
@@ -72,11 +71,16 @@ impl Square {
 
         Square::from(file - b'a', rank - b'1')
     }
+
+    pub fn file(&self) -> u8 {
+        self.0.trailing_zeros() as u8 % 8
+    }
+
+    pub fn rank(&self) -> u8 {
+        self.0.trailing_zeros() as u8 / 8
+    }
 }
 
-// Acts as a wrapper for a Square / multiple squares
-// e.g. Square1 | Square2 means to possible moves
-type _Move = Square;
 
 pub trait Board {
     fn get_piece(&self, square: &Square) -> Option<Piece>;
@@ -176,7 +180,7 @@ impl std::default::Default for BoardState {
     fn default() -> Self {
         Self {
             // Default starting position
-            board: bitboard::Bitboard([
+            board: Bitboard([
                 0xFF00,
                 0x42,
                 0x24,
