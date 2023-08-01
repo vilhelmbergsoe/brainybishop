@@ -1,11 +1,11 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use brainybishop::board::BoardState;
+use brainybishop::board::Board;
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("from_fen_default_position", |b| {
         b.iter(|| {
-            BoardState::from_fen(black_box(
+            Board::from_fen(black_box(
                 "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             ))
         })

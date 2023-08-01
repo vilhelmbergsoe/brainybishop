@@ -1,5 +1,5 @@
 use brainybishop::bitboard::Bitboard;
-use brainybishop::board::{Board, BoardState, CastlingRights, Color};
+use brainybishop::board::{Board, CastlingRights, Color};
 
 #[cfg(test)]
 mod tests {
@@ -10,12 +10,12 @@ mod tests {
     #[test]
     fn test_from_fen_default_position() {
         let board =
-            BoardState::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+            Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
                 .unwrap();
 
         assert_eq!(
             board,
-            BoardState {
+            Board {
                 board: Bitboard([
                     0xFF00,
                     0x42,
@@ -41,11 +41,11 @@ mod tests {
 
     #[test]
     fn test_board_state_default() {
-        let board = BoardState::default();
+        let board = Board::default();
 
         assert_eq!(
             board,
-            BoardState {
+            Board {
                 // Default starting position
                 board: Bitboard([
                     0xFF00,
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_get_piece_default_position() {
-        let board = BoardState::default().board;
+        let board = Board::default().board;
 
         assert_eq!(
             board.get_piece(&Square::from(0, 0).unwrap()),

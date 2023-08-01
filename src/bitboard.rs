@@ -1,4 +1,4 @@
-use super::board::{Board, Color, Piece, PieceType, Square};
+use super::board::{Color, Piece, PieceType, Square};
 
 use std::fmt;
 
@@ -18,8 +18,8 @@ const BLACK_KING: usize = 11;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard(pub [u64; 12]);
 
-impl Board for Bitboard {
-    fn get_piece(&self, square: &Square) -> Option<Piece> {
+impl Bitboard {
+    pub fn get_piece(&self, square: &Square) -> Option<Piece> {
         let square = square.0;
 
         for (index, &bitboard) in self.0.iter().enumerate() {
@@ -45,7 +45,7 @@ impl Board for Bitboard {
         None
     }
 
-    fn set_piece(&mut self, square: Square, piece: Piece) {
+    pub fn set_piece(&mut self, square: Square, piece: Piece) {
         self.remove_piece(&square);
 
         let idx = self.get_piece_idx(piece);
@@ -53,7 +53,7 @@ impl Board for Bitboard {
         self.0[idx] |= square.0;
     }
 
-    fn remove_piece(&mut self, square: &Square) {
+    pub fn remove_piece(&mut self, square: &Square) {
         let prev_piece = match self.get_piece(square) {
             Some(piece) => piece,
             None => return,
@@ -63,9 +63,7 @@ impl Board for Bitboard {
 
         self.0[idx] &= !square.0;
     }
-}
 
-impl Bitboard {
     fn get_piece_idx(&self, piece: Piece) -> usize {
         match piece {
             Piece(PieceType::Pawn, Color::White) => WHITE_PAWN,

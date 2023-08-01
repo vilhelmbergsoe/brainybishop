@@ -63,8 +63,10 @@ impl Square {
         let file = algebraic[0];
         let rank = algebraic[1];
 
-        if // file < b'a' || file > b'h'
-            !(b'a'..=b'h').contains(&file) || !(b'1'..=b'8').contains(&rank) // rank < b'1' || rank > b'8'
+        if
+        // file < b'a' || file > b'h'
+        !(b'a'..=b'h').contains(&file) || !(b'1'..=b'8').contains(&rank)
+        // rank < b'1' || rank > b'8'
         {
             return Err(eyre!("Invalid algebraic notation: '{}'", s));
         }
@@ -81,12 +83,11 @@ impl Square {
     }
 }
 
-
-pub trait Board {
-    fn get_piece(&self, square: &Square) -> Option<Piece>;
-    fn set_piece(&mut self, square: Square, piece: Piece);
-    fn remove_piece(&mut self, square: &Square);
-}
+// pub trait Board {
+//     fn get_piece(&self, square: &Square) -> Option<Piece>;
+//     fn set_piece(&mut self, square: Square, piece: Piece);
+//     fn remove_piece(&mut self, square: &Square);
+// }
 
 // 0b0000: none
 // 0b0001: white kingside
@@ -97,7 +98,7 @@ pub trait Board {
 pub struct CastlingRights(pub u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BoardState {
+pub struct Board {
     pub board: Bitboard,
     pub turn: Color,
     pub en_passant: Option<Square>,
@@ -106,7 +107,7 @@ pub struct BoardState {
     pub fullmove: u64,
 }
 
-impl BoardState {
+impl Board {
     pub fn from_fen(fen: &str) -> Result<Self> {
         let mut parts = fen.split_whitespace();
 
@@ -117,7 +118,7 @@ impl BoardState {
         let halfmove = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
         let fullmove = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
 
-        let mut boardstate = BoardState {
+        let mut boardstate = Board {
             board: Bitboard([0; 12]),
             turn: match turn {
                 "w" => Color::White,
@@ -176,7 +177,7 @@ impl BoardState {
     }
 }
 
-impl std::default::Default for BoardState {
+impl std::default::Default for Board {
     fn default() -> Self {
         Self {
             // Default starting position
