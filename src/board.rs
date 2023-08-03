@@ -22,7 +22,7 @@ pub enum Color {
 pub struct Piece(pub PieceType, pub Color);
 
 impl Piece {
-    fn from_char(c: char) -> Option<Piece> {
+    const fn from_char(c: char) -> Option<Piece> {
         match c {
             'p' => Some(Piece(PieceType::Pawn, Color::Black)),
             'n' => Some(Piece(PieceType::Knight, Color::Black)),
@@ -74,6 +74,13 @@ impl Square {
         Square::from(file - b'a', rank - b'1')
     }
 
+    pub fn to_algebraic(&self) -> String {
+        let file = self.file();
+        let rank = self.rank();
+
+        format!("{}{}", (file + b'a') as char, (rank + b'1') as char)
+    }
+
     pub fn file(&self) -> u8 {
         self.0.trailing_zeros() as u8 % 8
     }
@@ -99,7 +106,7 @@ pub struct CastlingRights(pub u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Board {
-    pub board: Bitboard,
+    pub bitboard: Bitboard,
     pub turn: Color,
     pub en_passant: Option<Square>,
     pub castling: CastlingRights,
@@ -119,7 +126,7 @@ impl Board {
         let fullmove = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
 
         let mut boardstate = Board {
-            board: Bitboard([0; 12]),
+            bitboard: Bitboard([0; 12]),
             turn: match turn {
                 "w" => Color::White,
                 "b" => Color::Black,
@@ -144,7 +151,6 @@ impl Board {
                             rights.0 |= right;
                         }
                     }
-
                     rights
                 }
             },
@@ -154,26 +160,42 @@ impl Board {
 
         let mut rank = 7;
         let mut file = 0;
-
-        for v in piece_placement.split('/') {
-            for c in v.chars() {
-                if let Some(piece) = Piece::from_char(c) {
-                    boardstate.board.set_piece(Square::from(file, rank)?, piece);
-                    file += 1;
-                } else if let Some(digit) = c.to_digit(10) {
-                    file += digit as u8;
-                } else {
-                    return Err(eyre!("Invalid FEN"));
+        for c in piece_placement.chars() {
+            match c {
+                '/' => {
+                    rank -= 1;
+                    file = 0;
                 }
-            }
-
-            if rank != 0 {
-                rank -= 1;
-                file = 0;
+                '1'..='8' => file += c as u8 - b'0',
+                _ => {
+                    if let Some(piece) = Piece::from_char(c) {
+                        let sq = Square::from(file, rank)?;
+                        boardstate.set_piece(sq, piece);
+                        file += 1;
+                    } else {
+                        return Err(eyre!("Invalid FEN"));
+                    }
+                }
             }
         }
 
         Ok(boardstate)
+    }
+
+    pub fn set_piece(&mut self, square: Square, piece: Piece) {
+        self.bitboard.set_piece(square, piece);
+    }
+
+    pub fn get_piece(&self, square: &Square) -> Option<Piece> {
+        self.bitboard.get_piece(square)
+    }
+
+    pub fn remove_piece(&mut self, square: &Square) {
+        self.bitboard.remove_piece(square);
+    }
+
+    pub fn is_square_empty(&self, square: &Square) -> bool {
+        self.bitboard.is_square_empty(square)
     }
 }
 
@@ -181,7 +203,7 @@ impl std::default::Default for Board {
     fn default() -> Self {
         Self {
             // Default starting position
-            board: Bitboard([
+            bitboard: Bitboard([
                 0xFF00,
                 0x42,
                 0x24,

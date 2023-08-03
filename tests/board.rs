@@ -10,13 +10,12 @@ mod tests {
     #[test]
     fn test_from_fen_default_position() {
         let board =
-            Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-                .unwrap();
+            Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
         assert_eq!(
             board,
             Board {
-                board: Bitboard([
+                bitboard: Bitboard([
                     0xFF00,
                     0x42,
                     0x24,
@@ -47,7 +46,7 @@ mod tests {
             board,
             Board {
                 // Default starting position
-                board: Bitboard([
+                bitboard: Bitboard([
                     0xFF00,
                     0x42,
                     0x24,
@@ -73,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_get_piece_default_position() {
-        let board = Board::default().board;
+        let board = Board::default().bitboard;
 
         assert_eq!(
             board.get_piece(&Square::from(0, 0).unwrap()),

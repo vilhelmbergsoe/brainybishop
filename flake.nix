@@ -1,5 +1,5 @@
 {
-  description = "A chess engine";
+  description = "BrainyBishop - A cool little chess engine";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -55,6 +55,8 @@
           nativeBuildInputs = with pkgs; [
             cargo
             rustc
+            rust-analyzer
+            rustfmt
           ];
         };
       });

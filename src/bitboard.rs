@@ -80,6 +80,10 @@ impl Bitboard {
             Piece(PieceType::King, Color::Black) => BLACK_KING,
         }
     }
+
+    pub fn is_square_empty(&self, square: &Square) -> bool {
+        self.0.iter().all(|&bitboard| bitboard & square.0 == 0)
+    }
 }
 
 impl fmt::Display for Bitboard {
