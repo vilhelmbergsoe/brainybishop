@@ -1,10 +1,8 @@
-use color_eyre::eyre::Result;
-
 use brainybishop::board::Board;
+use brainybishop::error::Result;
 use brainybishop::movegen::generate_moves;
 
 fn main() -> Result<()> {
-    color_eyre::install()?;
 
     let board = Board::default();
     println!("{}", board.bitboard);
