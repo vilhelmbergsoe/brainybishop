@@ -18,11 +18,29 @@ pub enum Color {
     Black,
 }
 
+impl Color {
+    #[inline(always)]
+    pub fn opposite(self) -> Self {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+
+    #[inline(always)]
+    pub fn index(self) -> usize {
+        match self {
+            Color::White => 0,
+            Color::Black => 1,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Piece(pub PieceType, pub Color);
 
 impl Piece {
-    fn from_char(c: char) -> Option<Piece> {
+    pub const fn from_char(c: char) -> Option<Piece> {
         match c {
             'p' => Some(Piece(PieceType::Pawn, Color::Black)),
             'n' => Some(Piece(PieceType::Knight, Color::Black)),
@@ -53,6 +71,12 @@ impl Square {
         Ok(Square(1 << (file + rank * 8)))
     }
 
+    #[inline(always)]
+    pub const fn from_index(sq: usize) -> Self {
+        debug_assert!(sq < 64);
+        Square(1 << sq)
+    }
+
     pub fn from_algebraic(s: &str) -> Result<Self> {
         let algebraic = s.as_bytes();
 
@@ -63,43 +87,61 @@ impl Square {
         let file = algebraic[0];
         let rank = algebraic[1];
 
-        if
-        // file < b'a' || file > b'h'
-        !(b'a'..=b'h').contains(&file) || !(b'1'..=b'8').contains(&rank)
-        // rank < b'1' || rank > b'8'
-        {
+        if !(b'a'..=b'h').contains(&file) || !(b'1'..=b'8').contains(&rank) {
             return Err(eyre!("Invalid algebraic notation: '{}'", s));
         }
 
         Square::from(file - b'a', rank - b'1')
     }
 
+    pub fn to_algebraic(&self) -> String {
+        let file = self.file();
+        let rank = self.rank();
+
+        format!("{}{}", (file + b'a') as char, (rank + b'1') as char)
+    }
+
+    #[inline(always)]
     pub fn file(&self) -> u8 {
         self.0.trailing_zeros() as u8 % 8
     }
 
+    #[inline(always)]
     pub fn rank(&self) -> u8 {
         self.0.trailing_zeros() as u8 / 8
     }
+
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        debug_assert!(self.0.count_ones() == 1);
+        self.0.trailing_zeros() as usize
+    }
 }
 
-// pub trait Board {
-//     fn get_piece(&self, square: &Square) -> Option<Piece>;
-//     fn set_piece(&mut self, square: Square, piece: Piece);
-//     fn remove_piece(&mut self, square: &Square);
-// }
+// Castling rights bit flags
+pub const WK_CASTLE: u8 = 0b0001;
+pub const WQ_CASTLE: u8 = 0b0010;
+pub const BK_CASTLE: u8 = 0b0100;
+pub const BQ_CASTLE: u8 = 0b1000;
 
-// 0b0000: none
-// 0b0001: white kingside
-// 0b0010: white queenside
-// 0b0100: black kingside
-// 0b1000: black queenside
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CastlingRights(pub u8);
 
+impl CastlingRights {
+    #[inline(always)]
+    pub fn has(self, right: u8) -> bool {
+        self.0 & right != 0
+    }
+
+    #[inline(always)]
+    pub fn remove(&mut self, right: u8) {
+        self.0 &= !right;
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Board {
-    pub board: Bitboard,
+    pub bitboard: Bitboard,
     pub turn: Color,
     pub en_passant: Option<Square>,
     pub castling: CastlingRights,
@@ -119,7 +161,7 @@ impl Board {
         let fullmove = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
 
         let mut boardstate = Board {
-            board: Bitboard([0; 12]),
+            bitboard: Bitboard::new(),
             turn: match turn {
                 "w" => Color::White,
                 "b" => Color::Black,
@@ -127,7 +169,7 @@ impl Board {
             },
             en_passant: match en_passant {
                 "-" => None,
-                _ => Some(Square::from_algebraic(en_passant).unwrap()),
+                _ => Some(Square::from_algebraic(en_passant)?),
             },
             castling: match castling {
                 "-" => CastlingRights(0b0000),
@@ -135,16 +177,15 @@ impl Board {
                     let mut rights = CastlingRights(0);
                     for c in castling.chars() {
                         if let Some(right) = match c {
-                            'K' => Some(0b0001),
-                            'Q' => Some(0b0010),
-                            'k' => Some(0b0100),
-                            'q' => Some(0b1000),
+                            'K' => Some(WK_CASTLE),
+                            'Q' => Some(WQ_CASTLE),
+                            'k' => Some(BK_CASTLE),
+                            'q' => Some(BQ_CASTLE),
                             _ => None,
                         } {
                             rights.0 |= right;
                         }
                     }
-
                     rights
                 }
             },
@@ -154,48 +195,87 @@ impl Board {
 
         let mut rank = 7;
         let mut file = 0;
-
-        for v in piece_placement.split('/') {
-            for c in v.chars() {
-                if let Some(piece) = Piece::from_char(c) {
-                    boardstate.board.set_piece(Square::from(file, rank)?, piece);
-                    file += 1;
-                } else if let Some(digit) = c.to_digit(10) {
-                    file += digit as u8;
-                } else {
-                    return Err(eyre!("Invalid FEN"));
+        for c in piece_placement.chars() {
+            match c {
+                '/' => {
+                    rank -= 1;
+                    file = 0;
                 }
-            }
-
-            if rank != 0 {
-                rank -= 1;
-                file = 0;
+                '1'..='8' => file += c as u8 - b'0',
+                _ => {
+                    if let Some(piece) = Piece::from_char(c) {
+                        let sq = Square::from(file, rank)?;
+                        boardstate.set_piece(sq, piece);
+                        file += 1;
+                    } else {
+                        return Err(eyre!("Invalid FEN"));
+                    }
+                }
             }
         }
 
         Ok(boardstate)
     }
+
+    pub fn set_piece(&mut self, square: Square, piece: Piece) {
+        self.bitboard.set_piece(square, piece);
+    }
+
+    pub fn get_piece(&self, square: &Square) -> Option<Piece> {
+        self.bitboard.get_piece(square)
+    }
+
+    pub fn remove_piece(&mut self, square: &Square) {
+        self.bitboard.remove_piece(square);
+    }
+
+    pub fn is_square_empty(&self, square: &Square) -> bool {
+        self.bitboard.is_square_empty(square)
+    }
+
+    #[inline(always)]
+    pub fn pieces(&self, piece_type: PieceType, color: Color) -> u64 {
+        self.bitboard.piece_bb(piece_type, color)
+    }
+
+    #[inline(always)]
+    pub fn occupancy(&self, color: Color) -> u64 {
+        self.bitboard.occupancy(color)
+    }
+
+    #[inline(always)]
+    pub fn all_occupancy(&self) -> u64 {
+        self.bitboard.all
+    }
+
+    #[inline(always)]
+    pub fn king_square(&self, color: Color) -> usize {
+        let king_bb = self.pieces(PieceType::King, color);
+        debug_assert!(king_bb != 0);
+        debug_assert!(king_bb.count_ones() == 1);
+        king_bb.trailing_zeros() as usize
+    }
 }
 
 impl std::default::Default for Board {
     fn default() -> Self {
-        Self {
-            // Default starting position
-            board: Bitboard([
-                0xFF00,
-                0x42,
-                0x24,
-                0x81,
-                0x08,
-                0x10,
-                0xFF000000000000,
-                0x4200000000000000,
-                0x2400000000000000,
-                0x8100000000000000,
-                0x0800000000000000,
-                0x1000000000000000,
-            ]),
+        let pieces = [
+            0x000000000000FF00, // White pawns
+            0x0000000000000042, // White knights
+            0x0000000000000024, // White bishops
+            0x0000000000000081, // White rooks
+            0x0000000000000008, // White queen
+            0x0000000000000010, // White king
+            0x00FF000000000000, // Black pawns
+            0x4200000000000000, // Black knights
+            0x2400000000000000, // Black bishops
+            0x8100000000000000, // Black rooks
+            0x0800000000000000, // Black queen
+            0x1000000000000000, // Black king
+        ];
 
+        Self {
+            bitboard: Bitboard::from_pieces(pieces),
             turn: Color::White,
             castling: CastlingRights(0b1111),
             en_passant: None,
