@@ -25,7 +25,7 @@ fn generate_magic_tables(f: &mut File) {
     let bishop_masks = generate_bishop_masks();
     write_array_u64(f, "BISHOP_MASKS", &bishop_masks);
 
-    // Magic numbers from cpw
+    // Magic numbers from CPW
     let rook_magics = get_rook_magics();
     write_array_u64(f, "ROOK_MAGICS", &rook_magics);
 

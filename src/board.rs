@@ -1,4 +1,4 @@
-use color_eyre::eyre::{eyre, Result};
+use crate::error::{Error, Result};
 
 use super::bitboard::Bitboard;
 
@@ -65,7 +65,7 @@ pub struct Square(pub u64);
 impl Square {
     pub fn from(file: u8, rank: u8) -> Result<Self> {
         if file > 7 || rank > 7 {
-            return Err(eyre!("Invalid square: {}{}", file, rank));
+            return Err(Error::InvalidSquare(file, rank));
         }
 
         Ok(Square(1 << (file + rank * 8)))
@@ -81,14 +81,14 @@ impl Square {
         let algebraic = s.as_bytes();
 
         if algebraic.len() != 2 {
-            return Err(eyre!("Invalid algebraic notation: '{}'", s));
+            return Err(Error::InvalidAlgebraicNotation);
         }
 
         let file = algebraic[0];
         let rank = algebraic[1];
 
         if !(b'a'..=b'h').contains(&file) || !(b'1'..=b'8').contains(&rank) {
-            return Err(eyre!("Invalid algebraic notation: '{}'", s));
+            return Err(Error::InvalidAlgebraicNotation);
         }
 
         Square::from(file - b'a', rank - b'1')
@@ -153,19 +153,19 @@ impl Board {
     pub fn from_fen(fen: &str) -> Result<Self> {
         let mut parts = fen.split_whitespace();
 
-        let piece_placement = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
-        let turn = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
-        let castling = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
-        let en_passant = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
-        let halfmove = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
-        let fullmove = parts.next().ok_or_else(|| eyre!("Invalid FEN"))?;
+        let piece_placement = parts.next().ok_or(Error::InvalidFen)?;
+        let turn = parts.next().ok_or(Error::InvalidFen)?;
+        let castling = parts.next().ok_or(Error::InvalidFen)?;
+        let en_passant = parts.next().ok_or(Error::InvalidFen)?;
+        let halfmove = parts.next().ok_or(Error::InvalidFen)?;
+        let fullmove = parts.next().ok_or(Error::InvalidFen)?;
 
         let mut boardstate = Board {
             bitboard: Bitboard::new(),
             turn: match turn {
                 "w" => Color::White,
                 "b" => Color::Black,
-                _ => return Err(eyre!("Error parsing turn-to-move: '{}'", turn)),
+                _ => return Err(Error::InvalidTurn),
             },
             en_passant: match en_passant {
                 "-" => None,
@@ -189,8 +189,8 @@ impl Board {
                     rights
                 }
             },
-            halfmove: halfmove.parse()?,
-            fullmove: fullmove.parse()?,
+            halfmove: halfmove.parse().map_err(Error::ParseError)?,
+            fullmove: fullmove.parse().map_err(Error::ParseError)?,
         };
 
         let mut rank = 7;
@@ -208,7 +208,7 @@ impl Board {
                         boardstate.set_piece(sq, piece);
                         file += 1;
                     } else {
-                        return Err(eyre!("Invalid FEN"));
+                        return Err(Error::InvalidFen);
                     }
                 }
             }
