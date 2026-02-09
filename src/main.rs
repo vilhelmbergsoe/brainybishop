@@ -1,32 +1,45 @@
-use brainybishop::board::Board;
+use brainybishop::board::Color;
 use brainybishop::error::Result;
-use brainybishop::movegen::generate_moves;
+use brainybishop::uci::{run_interactive_mode, UciEngine};
+use std::env;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
 
-    let board = Board::default();
-    println!("{}", board.bitboard);
-
-    let moves = generate_moves(&board);
-    println!("Legal moves from starting position: {}", moves.len());
-
-    for mv in moves.iter() {
-        print!("{} ", mv);
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "uci" => {
+                let mut engine = UciEngine::new();
+                engine.run()?;
+            }
+            "white" | "w" => {
+                run_interactive_mode(Color::White)?;
+            }
+            "black" | "b" => {
+                run_interactive_mode(Color::Black)?;
+            }
+            "--help" | "-h" => {
+                print_help();
+            }
+            _ => {
+                eprintln!("Unknown argument: {}", args[1]);
+                print_help();
+                std::process::exit(1);
+            }
+        }
+    } else {
+        run_interactive_mode(Color::White)?;
     }
-    println!();
-
-    // Test a position with en passant
-    let board =
-        Board::from_fen("rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 1").unwrap();
-    println!("\n{}", board.bitboard);
-
-    let moves = generate_moves(&board);
-    println!("Legal moves: {}", moves.len());
-
-    for mv in moves.iter() {
-        print!("{} ", mv);
-    }
-    println!();
 
     Ok(())
+}
+
+fn print_help() {
+    println!("brainybishop - {}", VERSION);
+    println!();
+    println!("Usage:");
+    println!("  brainybishop [white|black]  - Play as white or black (default: white)");
+    println!("  brainybishop uci            - UCI protocol mode");
 }

@@ -1,12 +1,14 @@
 use core::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Error {
     InvalidSquare(u8, u8),
     InvalidAlgebraicNotation,
     InvalidFen,
     InvalidTurn,
     ParseError(std::num::ParseIntError),
+    InvalidMove(String),
+    IoError(std::io::Error),
 }
 
 impl fmt::Display for Error {
@@ -28,10 +30,22 @@ impl fmt::Display for Error {
             Error::ParseError(e) => {
                 write!(f, "Parse error: {}", e)
             }
+            Error::InvalidMove(mv) => {
+                write!(f, "Invalid move: {}", mv)
+            }
+            Error::IoError(e) => {
+                write!(f, "IO error: {}", e)
+            }
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::IoError(err)
+    }
+}
 
 pub type Result<T> = core::result::Result<T, Error>;

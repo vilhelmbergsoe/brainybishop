@@ -1,7 +1,5 @@
 use super::board::{Color, Piece, PieceType, Square};
 
-use std::fmt;
-
 pub const WHITE_PAWN: usize = 0;
 pub const WHITE_KNIGHT: usize = 1;
 pub const WHITE_BISHOP: usize = 2;
@@ -158,25 +156,22 @@ impl Default for Bitboard {
     }
 }
 
-impl fmt::Display for Bitboard {
+impl std::fmt::Display for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let chessboard = [
-            '♟', '♞', '♝', '♜', '♛', '♚', // White pieces
-            '♙', '♘', '♗', '♖', '♕', '♔', // Black pieces
+            '♟', '♞', '♝', '♜', '♛', '♚', // White pieces (indices 0-5)
+            '♙', '♘', '♗', '♖', '♕', '♔', // Black pieces (indices 6-11)
         ];
 
         for rank in (0..8).rev() {
             write!(f, "{} ", rank + 1)?;
 
             for file in 0..8 {
-                let square = match Square::from(file, rank) {
-                    Ok(square) => square,
-                    Err(_) => return Err(std::fmt::Error),
-                };
+                let sq_bit = 1u64 << (file + rank * 8);
                 let mut piece_found = false;
 
                 for (index, &bitboard) in self.pieces.iter().enumerate() {
-                    if bitboard & square.0 != 0 {
+                    if bitboard & sq_bit != 0 {
                         write!(f, "{} ", chessboard[index])?;
                         piece_found = true;
                         break;
@@ -184,7 +179,7 @@ impl fmt::Display for Bitboard {
                 }
 
                 if !piece_found {
-                    write!(f, "· ")?;
+                    write!(f, ". ")?;
                 }
             }
 
